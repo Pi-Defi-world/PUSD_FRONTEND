@@ -1,0 +1,356 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+ * PUSD Design System
+ * -------------------
+ * Philosophy: Swiss banking meets Silicon Valley precision
+ * 
+ * Color Palette:
+ * - Primary: Deep slate/charcoal (#0a0a0b) - Authority, stability
+ * - Accent: Soft mint/teal (#10b981) - Growth, trust, money
+ * - Neutral: Warm grays - Approachable sophistication
+ * - Surface: Off-white cream (#fafaf9) - Premium paper texture
+ */
+
+@layer base {
+  :root {
+    /* Core surfaces - warm, premium paper-like quality */
+    --background: 40 20% 98%;
+    --foreground: 240 10% 6%;
+    
+    /* Cards - subtle elevation with warmth */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 6%;
+    
+    /* Popovers */
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 6%;
+    
+    /* Primary - deep charcoal for authority */
+    --primary: 240 10% 6%;
+    --primary-foreground: 40 20% 98%;
+    
+    /* Secondary - soft warm gray */
+    --secondary: 40 10% 94%;
+    --secondary-foreground: 240 10% 20%;
+    
+    /* Muted - subtle backgrounds */
+    --muted: 40 10% 96%;
+    --muted-foreground: 240 5% 46%;
+    
+    /* Accent - mint/teal for growth and trust */
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders - subtle, refined */
+    --border: 40 10% 90%;
+    --input: 40 10% 90%;
+    --ring: 160 84% 39%;
+    
+    /* Charts - cohesive palette */
+    --chart-1: 160 84% 39%;
+    --chart-2: 160 60% 50%;
+    --chart-3: 200 70% 50%;
+    --chart-4: 40 90% 60%;
+    --chart-5: 240 10% 30%;
+    
+    /* Custom tokens */
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 240 10% 6%;
+    
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Core surfaces - deep, rich blacks */
+    --background: 240 10% 4%;
+    --foreground: 40 20% 98%;
+    
+    /* Cards - elevated surfaces */
+    --card: 240 10% 7%;
+    --card-foreground: 40 20% 98%;
+    
+    /* Popovers */
+    --popover: 240 10% 7%;
+    --popover-foreground: 40 20% 98%;
+    
+    /* Primary - light for dark mode */
+    --primary: 40 20% 98%;
+    --primary-foreground: 240 10% 6%;
+    
+    /* Secondary */
+    --secondary: 240 8% 12%;
+    --secondary-foreground: 40 20% 90%;
+    
+    /* Muted */
+    --muted: 240 8% 12%;
+    --muted-foreground: 40 10% 55%;
+    
+    /* Accent - same mint but adjusted for dark */
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders */
+    --border: 240 8% 14%;
+    --input: 240 8% 14%;
+    --ring: 160 84% 39%;
+    
+    /* Charts */
+    --chart-1: 160 84% 45%;
+    --chart-2: 160 60% 55%;
+    --chart-3: 200 70% 55%;
+    --chart-4: 40 90% 65%;
+    --chart-5: 40 20% 80%;
+    
+    /* Custom tokens */
+    --success: 160 84% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 240 10% 6%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    @apply antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Selection styling */
+  ::selection {
+    @apply bg-accent/20 text-foreground;
+  }
+}
+
+@layer components {
+  /* Premium glass effect for cards */
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+  
+  .glass-strong {
+    @apply bg-card/95 backdrop-blur-2xl border border-border/60;
+  }
+  
+  /* Subtle hover elevation */
+  .hover-lift {
+    @apply transition-all duration-300 ease-out;
+  }
+  
+  .hover-lift:hover {
+    @apply -translate-y-0.5 shadow-lg;
+  }
+  
+  /* App container - mobile-first full-height */
+  .app-container {
+    @apply min-h-[100dvh] flex flex-col;
+  }
+  
+  /* Safe area padding for mobile devices */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  
+  /* Number display - tabular for financial data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  
+  /* Balance/money display */
+  .money {
+    @apply tabular-nums font-semibold tracking-tight;
+  }
+  
+  .money-lg {
+    @apply tabular-nums font-bold tracking-tight text-3xl md:text-4xl;
+  }
+  
+  /* Subtle divider line */
+  .divider {
+    @apply h-px w-full bg-border;
+  }
+  
+  /* Mobile bottom nav styling */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 z-50;
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+  }
+  
+  /* Accent button gradient */
+  .btn-accent {
+    @apply bg-accent text-accent-foreground font-medium;
+    @apply hover:bg-accent/90 active:bg-accent/80;
+    @apply transition-all duration-200;
+  }
+  
+  /* Ghost accent for secondary actions */
+  .btn-ghost-accent {
+    @apply text-accent hover:bg-accent/10 active:bg-accent/15;
+    @apply transition-all duration-200;
+  }
+  
+  /* Skeleton loading state */
+  .skeleton {
+    @apply bg-muted animate-pulse rounded;
+  }
+  
+  /* Focus ring styling - consistent */
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+  
+  /* Input styling override for webapp feel */
+  .input-clean {
+    @apply bg-secondary/50 border-0 focus:bg-secondary focus:ring-2 focus:ring-accent/20;
+    @apply transition-all duration-200;
+  }
+  
+  /* Status indicators */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+  
+  .status-dot-success {
+    @apply bg-success;
+  }
+  
+  .status-dot-warning {
+    @apply bg-warning;
+  }
+  
+  .status-dot-error {
+    @apply bg-destructive;
+  }
+  
+  /* Pulse animation for live indicators */
+  .pulse-live {
+    @apply relative;
+  }
+  
+  .pulse-live::after {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-current animate-ping opacity-75;
+  }
+}
+
+@layer utilities {
+  /* Text balance for headlines */
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Smooth scroll */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+  
+  /* Touch action for better mobile UX */
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
+  
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+}
+
+/* Animation keyframes */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+  animation-fill-mode: both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* Safe area utilities */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Number formatting */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

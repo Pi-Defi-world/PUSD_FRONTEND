@@ -1,0 +1,7 @@
+[[CURRENCIES]]
+code="PUSD"
+issuer="GCRVELHFFAQQWU2IEUXHTOQDBT7KUHB4CCQDNOP5HIYHJMZ5SAQ4MH52"
+name="PUSD Stablecoin"
+desc="PUSD is a programmable stable token on Pi Network, implemented as a Soroban token and economically targeted to track 1 USD via an off-chain USDC reserve bridge (Wrapped Pi on Stellar) managed by the issuer."
+image="https://pusd-coin.com/pusd-logo.png"
+

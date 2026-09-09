@@ -1,0 +1,53 @@
+name: Sync to Personal Repo
+
+on:
+  push:
+    branches:
+      - main
+      - testnet
+      - passkey
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
+          git config --global --add safe.directory /github/workspace
+
+      - name: Push to destination repo
+        env:
+          DESTINATION_REPO: "https://junman140:${{ secrets.API_TOKEN_GITHUB }}@github.com/junman140/pusd-frontend.git"
+        run: |
+          if git clone "$DESTINATION_REPO" --branch main --single-branch temp_pusd_frontend 2>/dev/null; then
+            echo "✅ Cloned main branch successfully"
+          else
+            echo "⚠️ Repository or main branch doesn't exist, creating..."
+            mkdir -p temp_pusd_frontend
+            cd temp_pusd_frontend
+            git init
+            git checkout -b main
+            git remote add origin "$DESTINATION_REPO"
+            cd ..
+          fi
+          
+          rsync -av --delete --exclude '.git' --exclude '.github/workflows' ./ temp_pusd_frontend/
+          cd temp_pusd_frontend
+          
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "GitHub Actions"
+
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Sync PUSD frontend 🚀 [skip ci]"
+            git push origin main || git push -u origin main
+            echo "✅ Synced successfully!"
+          else
+            echo "🟢 No changes detected — skipping commit."
+          fi
