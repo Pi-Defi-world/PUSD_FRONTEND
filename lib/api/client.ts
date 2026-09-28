@@ -363,6 +363,25 @@ class ApiClient {
     });
   }
 
+  async getClaimableGifts() {
+    return this.request('/pi-payments/claimable');
+  }
+
+  async claimGift(giftId: string) {
+    return this.request('/pi-payments/claim', {
+      method: 'POST',
+      body: JSON.stringify({ giftId }),
+    });
+  }
+
+  async getA2UClaimableGifts() {
+    return this.getClaimableGifts();
+  }
+
+  async claimA2UGift(giftId: string) {
+    return this.claimGift(giftId);
+  }
+
   // Transfer
   async transfer(data: {
     from: string;

@@ -8,6 +8,39 @@ export interface User {
   isActive: boolean;
 }
 
+export interface A2UGift {
+  id: string;
+  title: string;
+  description: string;
+  amount: number;
+  memo: string;
+  claimable?: boolean;
+  status?: string;
+  claim?: {
+    id: string;
+    giftId: string;
+    status: string;
+    paymentId: string | null;
+    txid: string | null;
+    error: string | null;
+  } | null;
+}
+
+export interface A2UClaim {
+  id: string;
+  giftId: string;
+  title: string;
+  description: string;
+  amount: string;
+  status: string;
+  paymentId: string | null;
+  txid: string | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
 export interface StablecoinConfig {
   network: {
     serverUrl: string;

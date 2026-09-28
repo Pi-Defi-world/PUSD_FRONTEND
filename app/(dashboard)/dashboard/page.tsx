@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,7 +12,7 @@ import { MintForm } from '@/components/MintForm';
 import { RedeemForm } from '@/components/RedeemForm';
 import { TransactionHistory } from '@/components/TransactionHistory';
 import { apiClient } from '@/lib/api/client';
-import { TrendingUp, Shield, ArrowDown } from 'lucide-react';
+import { TrendingUp, Shield, ArrowDown, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConnectWalletCard } from '@/components/app/connect-wallet-card';
 import { BalanceCard } from '@/components/app/balance-card';
@@ -21,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
-  const { isAuthenticated, user, authenticate } = usePi();
+  const { isAuthenticated, isHydrated, user, authenticate } = usePi();
   const router = useRouter();
   const { walletAddress, balance, fetchBalance, isLoading: walletLoading } = useWalletStore();
   const { piPrice, fetchPiPrice, isLoading: priceLoading } = usePriceStore();
@@ -125,6 +126,14 @@ export default function DashboardPage() {
   };
 
   // Not authenticated
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-10 h-10 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return <ConnectWalletCard />;
   }
@@ -182,6 +191,13 @@ export default function DashboardPage() {
           onMint={() => router.push('/dashboard/mint')} 
           onRedeem={() => router.push('/dashboard/mint?tab=redeem')} 
         />
+
+        <Button asChild variant="outline" className="w-full">
+          <Link href="/claim">
+            <Gift className="h-4 w-4" />
+            Claim Gift
+          </Link>
+        </Button>
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 gap-3">

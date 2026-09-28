@@ -2,6 +2,12 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react"
 import type { PiAuthResult, PiPaymentDTO } from "@/pi-sdk"
+import {
+  PI_AUTH_METHOD_KEY,
+  PI_OAUTH_AUTH_METHOD,
+  initiatePiSignIn,
+  isPiOAuthConfigured,
+} from "@/lib/pi-signin"
 
 interface PiUser {
   uid: string
@@ -14,7 +20,10 @@ interface PiContextType {
   accessToken: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  isHydrated: boolean
   authenticate: () => Promise<PiAuthResult>
+  signInWithPi: (returnTo?: string) => void
+  isOAuthConfigured: boolean
   signOut: () => void
   createPayment: (
     amount: number,
@@ -26,12 +35,23 @@ interface PiContextType {
 
 const PiContext = createContext<PiContextType | undefined>(undefined)
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api'
+const configuredServerUrl = process.env.NEXT_PUBLIC_SERVER_URL?.replace(/\/$/, '')
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '')
+const API_URL = configuredApiUrl || (configuredServerUrl ? `${configuredServerUrl}/api` : 'http://localhost:8001/api')
+const PI_SANDBOX = process.env.NEXT_PUBLIC_PI_SANDBOX === 'true' ||
+  process.env.NEXT_PUBLIC_PI_NETWORK === 'testnet' ||
+  process.env.NEXT_PUBLIC_NETWORK === 'testnet'
+
+function piAuthHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {}
+  const token = localStorage.getItem('auth_token') || localStorage.getItem('pi_access_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 async function approvePiPayment(paymentId: string) {
   const res = await fetch(`${API_URL}/pi-payments/approve`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...piAuthHeaders() },
     body: JSON.stringify({ paymentId }),
   })
   if (!res.ok) {
@@ -49,7 +69,7 @@ async function completePiPayment(
 ) {
   const res = await fetch(`${API_URL}/pi-payments/complete`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...piAuthHeaders() },
     body: JSON.stringify({ paymentId, txid, donationData }),
   })
   if (!res.ok) throw new Error("Payment completion failed")
@@ -58,17 +78,54 @@ async function completePiPayment(
 async function cancelPiPayment(paymentId: string) {
   const res = await fetch(`${API_URL}/pi-payments/cancel`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...piAuthHeaders() },
     body: JSON.stringify({ paymentId }),
   })
   if (!res.ok) throw new Error("Payment cancel failed")
 }
 
+type OAuthSession = { user: PiUser; accessToken: string }
+
+// Read during the first client render so that consumers which clear auth when
+// the session is missing never wipe an OAuth session. The server always returns
+// null, so pages must gate on isHydrated to avoid a hydration mismatch.
+function readOAuthSession(): OAuthSession | null {
+  if (typeof window === 'undefined') return null
+  if (localStorage.getItem(PI_AUTH_METHOD_KEY) !== PI_OAUTH_AUTH_METHOD) return null
+
+  const piToken = localStorage.getItem('pi_access_token')
+  const backendToken = localStorage.getItem('auth_token')
+  const rawUser = localStorage.getItem('pi_user')
+
+  if ((!piToken && !backendToken) || !rawUser) {
+    localStorage.removeItem(PI_AUTH_METHOD_KEY)
+    return null
+  }
+
+  try {
+    return { user: JSON.parse(rawUser) as PiUser, accessToken: backendToken || piToken || '' }
+  } catch {
+    localStorage.removeItem('pi_user')
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('pi_access_token')
+    localStorage.removeItem(PI_AUTH_METHOD_KEY)
+    return null
+  }
+}
+
 export function PiProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<PiUser | null>(null)
-  const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [oauthSession] = useState<OAuthSession | null>(readOAuthSession)
+  const [user, setUser] = useState<PiUser | null>(oauthSession?.user ?? null)
+  const [accessToken, setAccessToken] = useState<string | null>(oauthSession?.accessToken ?? null)
+  const [isAuthenticated, setIsAuthenticated] = useState(Boolean(oauthSession))
   const [isLoading, setIsLoading] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
+  const [isOAuthConfigured, setIsOAuthConfigured] = useState(false)
+
+  useEffect(() => {
+    setIsHydrated(true)
+    setIsOAuthConfigured(isPiOAuthConfigured())
+  }, [])
 
   // Initialize Pi SDK on mount - simple version
   useEffect(() => {
@@ -77,11 +134,11 @@ export function PiProvider({ children }: { children: ReactNode }) {
     const initSDK = () => {
       if (window.Pi && typeof window.Pi.init === 'function') {
         try {
-          window.Pi.init({ 
-            version: "2.0", 
-            sandbox: true 
+          window.Pi.init({
+            version: "2.0",
+            sandbox: PI_SANDBOX
           })
-          console.log("✅ Pi SDK initialized (sandbox: true)")
+          console.log(`✅ Pi SDK initialized (sandbox: ${PI_SANDBOX})`)
         } catch (error) {
           console.warn("Pi SDK already initialized:", error)
         }
@@ -93,8 +150,9 @@ export function PiProvider({ children }: { children: ReactNode }) {
     initSDK()
   }, [])
 
-  // Do not restore auth from localStorage — always require explicit Pi.authenticate()
-  // so the SDK has a session with payments scope in this page load.
+  const signInWithPi = useCallback((returnTo = '/dashboard') => {
+    initiatePiSignIn(returnTo)
+  }, [])
 
   const authenticate = useCallback(async (): Promise<PiAuthResult> => {
     console.log("🔐 authenticate() called")
@@ -104,9 +162,15 @@ export function PiProvider({ children }: { children: ReactNode }) {
     }
 
     setIsLoading(true)
+    // Keep any existing session until the SDK flow actually succeeds, so a
+    // cancelled or failed Pi.authenticate() does not sign the user out.
+    const previousUser = user
+    const previousToken = accessToken
+    const previousAuthenticated = isAuthenticated
     try {
       const onIncompletePaymentFound = (payment: PiPaymentDTO) => {
         console.warn("⚠️ Incomplete payment found:", payment.identifier)
+        if (payment.direction === 'app_to_user') return
         cancelPiPayment(payment.identifier).catch((err) =>
           console.error("Error cancelling incomplete payment:", err)
         )
@@ -149,7 +213,7 @@ export function PiProvider({ children }: { children: ReactNode }) {
         }
 
         const data = await response.json()
-        console.log("📦 Backend response:", data)
+        console.log("Backend sign-in response received", { success: data.success })
 
         if (data.success && data.data?.user) {
           if (data.data.user.piUsername) {
@@ -159,8 +223,8 @@ export function PiProvider({ children }: { children: ReactNode }) {
             localStorage.setItem("auth_token", data.data.token)
           }
         }
-      } catch (error) {
-        console.error("❌ Backend call failed:", error)
+      } catch {
+        console.error("Backend sign-in failed")
       }
 
       // Update state
@@ -171,15 +235,19 @@ export function PiProvider({ children }: { children: ReactNode }) {
       // Save to localStorage
       localStorage.setItem("pi_access_token", auth.accessToken)
       localStorage.setItem("pi_user", JSON.stringify(userData))
+      localStorage.removeItem(PI_AUTH_METHOD_KEY)
 
       return { accessToken: auth.accessToken, user: userData }
     } catch (error) {
       console.error("❌ Pi auth failed:", error)
+      setUser(previousUser)
+      setAccessToken(previousToken)
+      setIsAuthenticated(previousAuthenticated)
       throw error
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [user, accessToken, isAuthenticated])
 
   const signOut = () => {
     setUser(null)
@@ -188,6 +256,7 @@ export function PiProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("pi_access_token")
     localStorage.removeItem("pi_user")
     localStorage.removeItem("auth_token")
+    localStorage.removeItem(PI_AUTH_METHOD_KEY)
     console.log("✅ Signed out")
   }
 
@@ -211,7 +280,7 @@ export function PiProvider({ children }: { children: ReactNode }) {
       const authResult = await authenticate()
       const paymentUser = authResult.user
 
-      ;(window as any).Pi.init({ version: "2.0", sandbox: true })
+      ;(window as any).Pi.init({ version: "2.0", sandbox: PI_SANDBOX })
 
       return await new Promise((resolve, reject) => {
         const callbacks = {
@@ -290,7 +359,18 @@ export function PiProvider({ children }: { children: ReactNode }) {
 
   return (
     <PiContext.Provider
-      value={{ user, accessToken, isAuthenticated, isLoading, authenticate, signOut, createPayment }}
+      value={{
+        user,
+        accessToken,
+        isAuthenticated,
+        isLoading,
+        isHydrated,
+        authenticate,
+        signInWithPi,
+        isOAuthConfigured,
+        signOut,
+        createPayment,
+      }}
     >
       {children}
     </PiContext.Provider>

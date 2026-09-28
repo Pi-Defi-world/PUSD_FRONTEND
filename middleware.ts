@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Public routes that don't require authentication
-const publicRoutes = ['/'];
+const publicRoutes = ['/', '/signin/callback'];
 
 // Stats page (if it exists) - also public
 const statsRoutes = ['/stats'];

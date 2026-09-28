@@ -103,6 +103,7 @@ function getPageTitle(pathname: string | null): string {
     '/dashboard/earn': 'Earn',
     '/dashboard/reserve': 'Reserves',
     '/settings': 'Settings',
+    '/claim': 'Claim Gift',
     '/stats': 'Protocol Stats',
     '/developers': 'Developers',
     '/help/testnet': 'Help',

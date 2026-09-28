@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 export function ConnectWalletCard() {
-  const { authenticate } = usePi();
+  const { authenticate, signInWithPi, isOAuthConfigured } = usePi();
   const { stats, fetchStats } = useStatsStore();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -61,23 +61,35 @@ export function ConnectWalletCard() {
         </p>
 
         {/* Connect Button */}
-        <Button 
-          onClick={handleConnect}
-          disabled={isLoading}
-          className="w-full h-13 text-base rounded-xl mb-8"
-        >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full border-2 border-background border-t-transparent animate-spin" />
-              Connecting...
-            </div>
-          ) : (
-            <>
-              Connect Pi Wallet
-              <ArrowRight className="ml-2 w-4 h-4" />
-            </>
+        <div className="mb-8 space-y-3">
+          <Button
+            onClick={handleConnect}
+            disabled={isLoading}
+            className="w-full h-13 text-base rounded-xl"
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full border-2 border-background border-t-transparent animate-spin" />
+                Connecting...
+              </div>
+            ) : (
+              <>
+                Connect Pi Wallet
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </>
+            )}
+          </Button>
+
+          {isOAuthConfigured && (
+            <Button
+              variant="outline"
+              onClick={() => signInWithPi('/dashboard')}
+              className="w-full h-13 text-base rounded-xl"
+            >
+              Sign in with Pi account
+            </Button>
           )}
-        </Button>
+        </div>
 
         {/* Features */}
         <div className="grid grid-cols-2 gap-3 text-left">
@@ -95,7 +107,7 @@ export function ConnectWalletCard() {
 
         {/* Footer note */}
         <p className="mt-8 text-xs text-muted-foreground/70">
-          Requires Pi Browser
+          Pi Browser is required for payments. Sign in works in any browser.
         </p>
       </div>
     </div>
